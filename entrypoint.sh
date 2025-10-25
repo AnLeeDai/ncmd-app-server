@@ -21,6 +21,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
+# Enable opcache after build
+echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/custom.ini
+
 # Create storage link
 php artisan storage:link
 

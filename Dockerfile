@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required by Laravel
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip opcache
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
@@ -25,11 +25,16 @@ WORKDIR /var/www/html
 # Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
+# Create dummy .env for composer scripts
+RUN echo "APP_NAME=Laravel" > .env && \
+    echo "APP_ENV=production" >> .env && \
+    echo "APP_KEY=" >> .env
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Install PHP dependencies (production)
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 # Skip frontend build since we only deploy backend
 # COPY package.json package-lock.json ./
