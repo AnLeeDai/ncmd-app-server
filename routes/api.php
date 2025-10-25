@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\PointController;
+use App\Http\Controllers\SpinController;
 
 // Public routes
 Route::prefix('public')->group(function () {
@@ -39,15 +40,26 @@ Route::prefix('private')->middleware('auth:sanctum')->group(function () {
     Route::prefix('points')->group(function () {
         Route::get('/history', [PointController::class, 'pointHistoryUser']);
     });
+
+    Route::prefix('spin')->group(function () {
+        Route::post('/', [SpinController::class, 'spin']);
+        Route::get('/rewards', [SpinController::class, 'allRewards']);
+    });
 });
 
 // Admin-only routes
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::get('/users', [UserController::class, 'users']);
-    Route::get('/{id}/users', [UserController::class, 'getUserById']);
-    Route::patch('/{id}/users/toggle-active', [UserController::class, 'toggleUserActiveStatus']);
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'users']);
+        Route::get('/{id}', [UserController::class, 'getUserById']);
+        Route::patch('/{id}/toggle-active', [UserController::class, 'toggleUserActiveStatus']);
+    });
 
     Route::prefix('points')->group(function () {
         Route::get('/{id}/history', [PointController::class, 'pointHistoryById']);
+    });
+
+    Route::prefix('spin')->group(function () {
+        Route::get('/addReward', [SpinController::class, 'addReward']);
     });
 });
