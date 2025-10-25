@@ -25,23 +25,21 @@ WORKDIR /var/www/html
 # Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Copy the rest of the application (including artisan)
+COPY . .
+
 # Create dummy .env for composer scripts
 RUN echo "APP_NAME=Laravel" > .env && \
     echo "APP_ENV=production" >> .env && \
     echo "APP_KEY=" >> .env
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
 # Install PHP dependencies (production)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 # Skip frontend build since we only deploy backend
-# COPY package.json package-lock.json ./
-# RUN npm install && npm run build
-
-# Copy the rest of the application
-COPY . .
 
 # Copy config files
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
