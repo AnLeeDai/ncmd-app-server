@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required by Laravel
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip opcache
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
@@ -42,16 +42,13 @@ RUN npm install && npm run build
 # Copy the rest of the application
 COPY . .
 
+# Copy config files
+COPY php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
+
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# Configure Apache to serve from /var/www/html/public
-RUN echo "DocumentRoot /var/www/html/public" >> /etc/apache2/sites-available/000-default.conf \
-    && echo "<Directory /var/www/html/public>\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    </Directory>" >> /etc/apache2/sites-available/000-default.conf
 
 # Set permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html \
