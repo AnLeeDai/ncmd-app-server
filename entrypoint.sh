@@ -25,6 +25,7 @@ php artisan view:cache
 echo "zend_extension=opcache.so" >> /usr/local/etc/php/conf.d/custom.ini
 
 # Create storage link
+mkdir -p storage/app/public
 php artisan storage:link
 
 # Start Apache
