@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
+use App\Http\Controllers\PointController;
 
 // Public routes
 Route::prefix('public')->group(function () {
@@ -34,6 +35,10 @@ Route::prefix('private')->middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/complete-view', [VideoController::class, 'endView']);
         Route::post('/{id}/cancel-view', [VideoController::class, 'cancelView']);
     });
+
+    Route::prefix('points')->group(function () {
+        Route::get('/history', [PointController::class, 'pointHistoryUser']);
+    });
 });
 
 // Admin-only routes
@@ -41,4 +46,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::get('/users', [UserController::class, 'users']);
     Route::get('/{id}/users', [UserController::class, 'getUserById']);
     Route::patch('/{id}/users/toggle-active', [UserController::class, 'toggleUserActiveStatus']);
+
+    Route::prefix('points')->group(function () {
+        Route::get('/{id}/history', [PointController::class, 'pointHistoryById']);
+    });
 });

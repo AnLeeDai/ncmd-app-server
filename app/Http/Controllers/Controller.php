@@ -31,7 +31,7 @@ abstract class Controller
     }
 
     // pagination response helper
-    protected function paginationResponse($data, $message = 'Success', $code = 200): JsonResponse
+    protected function paginationResponse($data, $message = 'Success', $code = 200, array $extra = []): JsonResponse
     {
         $response = [
             'message' => $message,
@@ -46,6 +46,10 @@ abstract class Controller
             ],
             'timestamp' => now()->toDateTimeString(),
         ];
+
+        if (! empty($extra)) {
+            $response['meta'] = $extra;
+        }
 
         return response()->json($response, $code);
     }
