@@ -6,6 +6,8 @@ README.md
 .env.production
 node_modules
 npm-debug.log
+package.json
+package-lock.json
 Dockerfile
 .dockerignore
 storage/app/public/avatars/*

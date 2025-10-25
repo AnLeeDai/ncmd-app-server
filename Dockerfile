@@ -1,7 +1,7 @@
 # Use PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# Install system dependencies
+# Install system dependencies (skip Node.js since no FE build)
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -11,8 +11,6 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required by Laravel
@@ -33,11 +31,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install PHP dependencies (production)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy package files
-COPY package.json package-lock.json ./
-
-# Install Node.js dependencies and build assets
-RUN npm install && npm run build
+# Skip frontend build since we only deploy backend
+# COPY package.json package-lock.json ./
+# RUN npm install && npm run build
 
 # Copy the rest of the application
 COPY . .
