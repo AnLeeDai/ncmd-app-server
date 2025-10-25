@@ -37,13 +37,18 @@ RUN echo "APP_NAME=Laravel" > .env && \
     echo "APP_KEY=" >> .env
 
 # Install PHP dependencies (production)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
+RUN php -d memory_limit=512M /usr/bin/composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 # Skip frontend build since we only deploy backend
 
 # Copy config files
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
+
+# Set MaxRequestWorkers globally (cannot be in VirtualHost)
+RUN echo "<IfModule mpm_prefork_module>" >> /etc/apache2/apache2.conf && \
+    echo "MaxRequestWorkers 5" >> /etc/apache2/apache2.conf && \
+    echo "</IfModule>" >> /etc/apache2/apache2.conf
 
 # Copy entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
