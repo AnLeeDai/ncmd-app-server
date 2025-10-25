@@ -27,6 +27,14 @@ class User extends Authenticatable
     ];
 
     /**
+     * Attributes to append when the model is serialized.
+     * This ensures `total_points` is always present in toArray()/JSON outputs.
+     *
+     * @var array
+     */
+    protected $appends = ['total_points'];
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -67,5 +75,30 @@ class User extends Authenticatable
         if ($this->isAdmin()) {
             $this->role = null;
         }
+    }
+
+    public function adViews()
+    {
+        return $this->hasMany(AdView::class);
+    }
+
+    public function userPoints()
+    {
+        return $this->hasMany(UserPoint::class);
+    }
+
+    public function spinTurns()
+    {
+        return $this->hasMany(SpinTurn::class);
+    }
+
+    public function getTotalPointsAttribute()
+    {
+        return $this->userPoints()->sum('points');
+    }
+
+    public function getTotalSpinTurnsAttribute()
+    {
+        return $this->spinTurns()->sum('turns');
     }
 }

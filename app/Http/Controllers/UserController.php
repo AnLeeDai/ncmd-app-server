@@ -15,7 +15,10 @@ class UserController extends Controller
             return $this->errorResponse('User not authenticated', 401);
         }
 
-        return $this->successResponse($user, 'User profile retrieved successfully');
+        $userData = $user->toArray();
+        $userData['total_points'] = $user->userPoints()->sum('points') ?? 0;
+
+        return $this->successResponse($userData, 'User profile retrieved successfully');
     }
 
     public function users(Request $request)
@@ -30,7 +33,6 @@ class UserController extends Controller
         return $this->paginationResponse(
             $users,
             'Users retrieved successfully',
-            200,
         );
     }
 
