@@ -1,67 +1,52 @@
-# Use PHP 8.2 with Apache
-FROM php:8.2-apache
+# Dockerfile for Laravel with Nginx and PHP-FPM (optimized for low resources)
+FROM php:8.2-fpm-alpine
 
-# Install system dependencies (skip Node.js since no FE build)
-RUN apt-get update && apt-get install -y \
+# Install system dependencies
+RUN apk add --no-cache \
     git \
     curl \
     libpng-dev \
-    libonig-dev \
+    oniguruma-dev \
     libxml2-dev \
-    libzip-dev \
     zip \
     unzip \
-    && rm -rf /var/lib/apt/lists/*
+    nginx \
+    supervisor
 
-# Install PHP extensions required by Laravel
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# Clear cache
+RUN apk add --no-cache pcre-dev $PHPIZE_DEPS
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Install PHP extensions
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock ./
+# Copy composer files
+COPY composer.json composer.lock artisan bootstrap config routes app ./
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Install PHP dependencies
+RUN composer install --optimize-autoloader --no-dev --prefer-dist --no-progress --no-scripts
 
-# Copy the rest of the application (including artisan)
+# Copy application code
 COPY . .
 
-# Create dummy .env for composer scripts
-RUN echo "APP_NAME=Laravel" > .env && \
-    echo "APP_ENV=production" >> .env && \
-    echo "APP_KEY=" >> .env
+# Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Install PHP dependencies (production)
-RUN php -d memory_limit=512M /usr/bin/composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
-
-# Skip frontend build since we only deploy backend
-
-# Copy config files
-COPY php.ini /usr/local/etc/php/conf.d/custom.ini
-COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
-
-# Set MaxRequestWorkers globally (cannot be in VirtualHost)
-RUN echo "<IfModule mpm_prefork_module>" >> /etc/apache2/apache2.conf && \
-    echo "MaxRequestWorkers 5" >> /etc/apache2/apache2.conf && \
-    echo "</IfModule>" >> /etc/apache2/apache2.conf
-
-# Copy entrypoint script
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# Set permissions for Laravel
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage/app/public
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Expose port 80 (Render will handle port mapping)
+# Create supervisor config
+RUN printf '[supervisord]\nnodaemon=true\n\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\nautorestart=true\n\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true\nautorestart=true\n' > /etc/supervisord.conf
+
+# Expose port 80
 EXPOSE 80
 
-# Use entrypoint script
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]

@@ -67,6 +67,52 @@ API server cho ứng dụng xem quảng cáo tích điểm và đổi lượt qu
    php artisan serve
    ```
 
+## 🌐 Deploy trên Render
+
+Dự án này được cấu hình để deploy trên Render với Docker, tối ưu cho cấu hình 512MB RAM và 0.1 CPU.
+
+### Bước deploy
+
+1. **Push code lên GitHub**
+   Đảm bảo tất cả files (bao gồm Dockerfile, nginx.conf) đã được commit và push.
+
+2. **Tạo service trên Render**
+   - Truy cập [Render Dashboard](https://dashboard.render.com)
+   - Tạo Web Service mới
+   - Kết nối với repository GitHub
+   - Chọn branch (ví dụ: `main` hoặc `feat/setup-deploy-production`)
+
+3. **Cấu hình service**
+   - **Runtime**: Docker
+   - **Build Command**: (để trống, Dockerfile sẽ tự build)
+   - **Start Command**: (để trống, Dockerfile có CMD)
+   - **Environment Variables**: Thêm các biến môi trường cần thiết
+     - `APP_ENV=production`
+     - `APP_KEY` (tạo bằng `php artisan key:generate --show`)
+     - `DB_CONNECTION` (ví dụ: `pgsql` cho PostgreSQL)
+     - `DB_HOST` (dùng internal database của Render)
+     - `DB_PORT`
+     - `DB_DATABASE`
+     - `DB_USERNAME`
+     - `DB_PASSWORD`
+     - Các biến khác như `MAIL_*`, `CACHE_DRIVER=file`, `SESSION_DRIVER=file`
+
+4. **Database**
+   - Tạo PostgreSQL database trên Render
+   - Cập nhật environment variables với thông tin DB
+
+5. **Deploy**
+   - Render sẽ tự động build và deploy
+   - Theo dõi logs để đảm bảo không có lỗi
+
+### Tối ưu cho low resources
+
+- Nginx: 1 worker process, 512 connections
+- PHP-FPM: Default config (có thể điều chỉnh nếu cần)
+- Gzip compression enabled
+- Static files cached 1 year
+- Health check endpoint: `/health`
+
 ## 📚 API Endpoints
 
 ### Public Routes
