@@ -20,6 +20,8 @@ class AdFactory extends Factory
             'title' => $this->faker->sentence(),
             'description' => $this->faker->paragraph(),
             'video_url' => $this->faker->url(),
+            // a placeholder poster image (640x360) — replace with storage path if uploading real files
+            'poster' => $this->faker->imageUrl(640, 360, 'business', true),
             'duration' => $this->faker->numberBetween(15, 120),
             'points_reward' => $this->faker->numberBetween(5, 50),
             'is_active' => true,
