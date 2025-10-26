@@ -10,8 +10,11 @@ class VideoController extends Controller
 {
     public function videos()
     {
-        $ads = Ad::where('is_active', true)->paginate(10)->through(function ($ad) {
-            return [
+        // Select only the columns we need for the listing and paginate.
+        $ads = Ad::select(['id', 'title', 'video_url', 'duration', 'points_reward', 'poster', 'created_at', 'updated_at'])
+            ->where('is_active', true)
+            ->paginate(10)
+            ->through(fn($ad) => [
                 'id' => $ad->id,
                 'title' => $ad->title,
                 'url' => $ad->video_url,
@@ -20,15 +23,16 @@ class VideoController extends Controller
                 'poster' => $ad->poster,
                 'created_at' => $ad->created_at,
                 'updated_at' => $ad->updated_at,
-            ];
-        });
+            ]);
 
         return $this->paginationResponse($ads, 'Videos retrieved successfully');
     }
 
     public function getVideoById($id)
     {
-        $ad = Ad::find($id);
+        // Only select necessary columns when fetching a single video
+        $ad = Ad::select(['id', 'title', 'video_url', 'duration', 'points_reward', 'poster', 'created_at', 'updated_at'])
+            ->find($id);
 
         if (!$ad || !$ad->is_active) {
             return $this->errorResponse('Video not found', 404);
@@ -58,6 +62,7 @@ class VideoController extends Controller
 
         $userId = auth()->id();
 
+        // eager-load the ad when we will need it later and use indexed columns in where to take advantage of DB indexes
         $existingView = AdView::where('user_id', $userId)
             ->where('ad_id', $adId)
             ->whereNull('completed_at')
@@ -68,7 +73,9 @@ class VideoController extends Controller
         }
 
         // Prevent starting a different video while another view is active
-        $otherActive = AdView::where('user_id', $userId)
+        // eager-load related ad to avoid an extra query when accessing ->ad
+        $otherActive = AdView::with('ad')
+            ->where('user_id', $userId)
             ->whereNull('completed_at')
             ->where('ad_id', '<>', $adId)
             ->first();
@@ -116,13 +123,16 @@ class VideoController extends Controller
     {
         $userId = auth()->id();
 
-        $adView = AdView::where('user_id', $userId)
+        // eager-load ad to avoid extra queries when accessing $adView->ad
+        $adView = AdView::with('ad')
+            ->where('user_id', $userId)
             ->where('ad_id', $adId)
             ->whereNull('completed_at')
             ->first();
 
         if (!$adView) {
-            $otherActive = AdView::where('user_id', $userId)
+            $otherActive = AdView::with('ad')
+                ->where('user_id', $userId)
                 ->whereNull('completed_at')
                 ->first();
 
@@ -148,8 +158,9 @@ class VideoController extends Controller
             return $this->errorResponse('No active view found. Call start-view first', 400);
         }
 
-        $startedAt = $adView->started_at;
-        $duration = (int) $adView->ad->duration;
+    $startedAt = $adView->started_at;
+    // ad was eager-loaded above so accessing ->ad does not trigger another DB query
+    $duration = (int) $adView->ad->duration;
 
         $watchedSeconds = (int) $startedAt->diffInSeconds(now());
 

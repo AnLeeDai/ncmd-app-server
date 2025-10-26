@@ -13,6 +13,7 @@ class Ad extends Model
         'title',
         'description',
         'video_url',
+        'poster',
         'duration',
         'points_reward',
         'is_active',
