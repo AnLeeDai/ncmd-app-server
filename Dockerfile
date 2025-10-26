@@ -11,7 +11,8 @@ RUN apk add --no-cache \
     zip \
     unzip \
     nginx \
-    supervisor
+    supervisor \
+    gettext
 
 # Clear cache
 RUN apk add --no-cache pcre-dev $PHPIZE_DEPS
@@ -34,8 +35,8 @@ RUN composer install --optimize-autoloader --no-dev --prefer-dist --no-progress 
 # Copy application code
 COPY . .
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy nginx config template
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
@@ -45,8 +46,5 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create supervisor config
 RUN printf '[supervisord]\nnodaemon=true\n\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\nautorestart=true\n\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true\nautorestart=true\n' > /etc/supervisord.conf
 
-# Expose port 80
-EXPOSE 80
-
-# Start supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# Start supervisor with nginx config substitution
+CMD PORT=${PORT:-80} envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && /usr/bin/supervisord -c /etc/supervisord.conf
