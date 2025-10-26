@@ -31,6 +31,12 @@ http {
     server {
     listen 0.0.0.0:${PORT};
         server_name _;
+
+        # Overload protection: if the monitor creates /tmp/OVERLOAD, return 503 for new requests
+        if (-f /tmp/OVERLOAD) {
+            add_header Retry-After 10;
+            return 503;
+        }
         root /var/www/html/public;
         index index.php index.html;
 
