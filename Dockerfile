@@ -47,4 +47,4 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN printf '[supervisord]\nnodaemon=true\n\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\nautorestart=true\n\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true\nautorestart=true\n' > /etc/supervisord.conf
 
 # Start supervisor with nginx config substitution
-CMD PORT=${PORT:-80} envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && /usr/bin/supervisord -c /etc/supervisord.conf
+CMD /bin/sh -c 'PORT=${PORT:-80} envsubst "${PORT}" < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -t && /usr/bin/supervisord -c /etc/supervisord.conf'
