@@ -35,18 +35,15 @@ RUN composer install --optimize-autoloader --no-dev --prefer-dist --no-progress 
 # Copy application code
 COPY . .
 
-# Copy nginx config template
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
+# Copy static nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Create supervisor config
-COPY scripts/overload-monitor.sh /usr/local/bin/overload-monitor.sh
-RUN chmod +x /usr/local/bin/overload-monitor.sh
-
+# Create supervisor config (no overload monitor)
 RUN cat > /etc/supervisord.conf <<'EOF'
 [supervisord]
 user=root
@@ -61,14 +58,7 @@ autorestart=true
 command=nginx -g "daemon off;"
 autostart=true
 autorestart=true
-
-[program:overload-monitor]
-command=/usr/local/bin/overload-monitor.sh
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/overload-monitor.log
-stderr_logfile=/var/log/overload-monitor.err
 EOF
 
 # Start supervisor with nginx config substitution
-CMD /bin/sh -c 'PORT=${PORT:-80} envsubst '\''$PORT'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -t && /usr/bin/supervisord -c /etc/supervisord.conf'
+CMD /bin/sh -c 'nginx -t && /usr/bin/supervisord -c /etc/supervisord.conf'
