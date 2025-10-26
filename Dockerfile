@@ -35,6 +35,10 @@ RUN composer install --optimize-autoloader --no-dev --prefer-dist --no-progress 
 # Copy application code
 COPY . .
 
+# Copy PHP production configs (memory/opcache/php-fpm tuning)
+COPY docker/php/zz-prod.ini /usr/local/etc/php/conf.d/zz-prod.ini
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+
 # Copy static nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
