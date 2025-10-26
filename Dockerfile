@@ -47,7 +47,28 @@ RUN chown -R www-data:www-data /var/www/html \
 COPY scripts/overload-monitor.sh /usr/local/bin/overload-monitor.sh
 RUN chmod +x /usr/local/bin/overload-monitor.sh
 
-RUN printf '[supervisord]\nuser=root\nnodaemon=true\n\n[program:php-fpm]\ncommand=php-fpm\nautostart=true\nautorestart=true\n\n[program:nginx]\ncommand=nginx -g "daemon off;"\nautostart=true\nautorestart=true\n\n[program:overload-monitor]\ncommand=/usr/local/bin/overload-monitor.sh\nautostart=true\nautorestart=true\nstdout_logfile=/var/log/overload-monitor.log\nstderr_logfile=/var/log/overload-monitor.err\n' > /etc/supervisord.conf
+RUN cat > /etc/supervisord.conf <<'EOF'
+[supervisord]
+user=root
+nodaemon=true
+
+[program:php-fpm]
+command=php-fpm
+autostart=true
+autorestart=true
+
+[program:nginx]
+command=nginx -g "daemon off;"
+autostart=true
+autorestart=true
+
+[program:overload-monitor]
+command=/usr/local/bin/overload-monitor.sh
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/overload-monitor.log
+stderr_logfile=/var/log/overload-monitor.err
+EOF
 
 # Start supervisor with nginx config substitution
 CMD /bin/sh -c 'PORT=${PORT:-80} envsubst '\''$PORT'\'' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -t && /usr/bin/supervisord -c /etc/supervisord.conf'
