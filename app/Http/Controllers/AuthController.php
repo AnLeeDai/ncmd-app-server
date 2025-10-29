@@ -15,9 +15,9 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};:"\\|,.<>\/?]).+$/'],
+            'phoneNumber' => ['sometimes', 'string', 'regex:/^(?:\+84|0)(?:3[2-9]|5[689]|7[06789]|8[1-9]|9[0-9])\d{7}$/'],
+            'password' => ['sometimes', 'string', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};:"\\|,.<>\/?]).+$/'],
             'role' => ['in:user'],
         ]);
 
@@ -29,9 +29,15 @@ class AuthController extends Controller
         $avatarPath = !empty($files) ? $files[array_rand($files)] : 'avatars/AV1.png';
         $avatarUrl = url("/storage/$avatarPath");
 
+        // auto generate name from email
+        $namePart = explode('@', $request->email)[0];
+        $name = preg_replace('/[._]/', ' ', $namePart);
+        $name = strtolower($name);
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $name,
             'email' => $request->email,
+            'phone_number' => $request->phoneNumber ?? null,
             'password' => Hash::make($request->password),
             'role' => $request->role ?? 'user',
             'avatar' => $avatarUrl,
@@ -44,6 +50,7 @@ class AuthController extends Controller
             'token' => $token,
         ], 'User registered successfully', 201);
     }
+
     public function login(Request $request)
     {
         $request->validate([
