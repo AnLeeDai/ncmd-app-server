@@ -139,40 +139,33 @@ class VideoController extends Controller
         }
 
         $startedAt = $adView->started_at;
-        $duration = (int)$adView->ad->duration;
+        $watchedSeconds = $startedAt ? (int)$startedAt->diffInSeconds(now()) : 0;
 
-        $watchedSeconds = (int)$startedAt->diffInSeconds(now());
-
-        if ($watchedSeconds < $duration) {
-            $remaining = max(0, $duration - $watchedSeconds);
-
-            return $this->successResponse([
-                'required_seconds' => $duration,
-                'watched_seconds' => $watchedSeconds,
-                'remaining_seconds' => $remaining,
-                'started_at' => $adView->started_at?->toDateTimeString(),
-                'video' => [
-                    'id' => $adView->ad->id,
-                    'title' => $adView->ad->title,
-                    'duration' => $adView->ad->duration,
-                    'points' => $adView->ad->points_reward,
-                ],
-            ], 'Video not watched for full duration', 400);
+        if (!$adView->points_awarded) {
+            UserPoint::create([
+                'user_id' => $adView->user_id,
+                'points' => $adView->ad->points_reward,
+                'source' => 'ad_view',
+                'description' => "Points awarded for watching ad: {$adView->ad->title}",
+            ]);
         }
-
-        UserPoint::create([
-            'user_id' => $adView->user_id,
-            'points' => $adView->ad->points_reward,
-            'source' => 'ad_view',
-            'description' => "Points awarded for watching ad: {$adView->ad->title}",
-        ]);
 
         $adView->update([
             'completed_at' => now(),
             'points_awarded' => true,
         ]);
 
-        return $this->successResponse(['points' => $adView->ad->points_reward], 'View completed, points awarded');
+        return $this->successResponse([
+            'points' => $adView->ad->points_reward,
+            'watched_seconds' => $watchedSeconds,
+            'started_at' => $adView->started_at?->toDateTimeString(),
+            'video' => [
+                'id' => $adView->ad->id,
+                'title' => $adView->ad->title,
+                'duration' => $adView->ad->duration,
+                'points' => $adView->ad->points_reward,
+            ],
+        ], 'View completed, points awarded');
     }
 
     public function cancelView(Request $request)
