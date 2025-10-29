@@ -15,8 +15,6 @@ abstract class Controller
             'timestamp' => now()->toDateTimeString(),
         ];
 
-
-
         return response()->json($response, $code);
     }
 
@@ -47,7 +45,7 @@ abstract class Controller
             'timestamp' => now()->toDateTimeString(),
         ];
 
-        if (! empty($extra)) {
+        if (!empty($extra)) {
             $response['meta'] = $extra;
         }
 

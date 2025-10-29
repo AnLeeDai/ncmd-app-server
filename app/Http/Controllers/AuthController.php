@@ -26,7 +26,7 @@ class AuthController extends Controller
             ->values()
             ->all();
 
-        $avatarPath = !empty($files) ? $files[array_rand($files)] : 'avatars/default.png';
+        $avatarPath = !empty($files) ? $files[array_rand($files)] : 'avatars/AV1.png';
         $avatarUrl = url("/storage/$avatarPath");
 
         $user = User::create([

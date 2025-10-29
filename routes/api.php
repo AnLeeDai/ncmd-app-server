@@ -32,9 +32,9 @@ Route::prefix('private')->middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('videos')->group(function () {
-        Route::post('/{id}/start-view', [VideoController::class, 'startView']);
-        Route::post('/{id}/complete-view', [VideoController::class, 'endView']);
-        Route::post('/{id}/cancel-view', [VideoController::class, 'cancelView']);
+        Route::post('/start-view', [VideoController::class, 'startView']);
+        Route::post('/complete-view', [VideoController::class, 'endView']);
+        Route::post('/cancel-view', [VideoController::class, 'cancelView']);
     });
 
     Route::prefix('points')->group(function () {

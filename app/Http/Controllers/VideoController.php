@@ -5,56 +5,32 @@ namespace App\Http\Controllers;
 use App\Models\Ad;
 use App\Models\AdView;
 use App\Models\UserPoint;
+use Illuminate\Http\Request;
 
 class VideoController extends Controller
 {
-    public function videos()
+    public function videos(Request $request)
     {
-        // Select only the columns we need for the listing and paginate.
-        $ads = Ad::select(['id', 'title', 'video_url', 'duration', 'points_reward', 'poster', 'created_at', 'updated_at'])
-            ->where('is_active', true)
-            ->paginate(10)
-            ->through(fn($ad) => [
-                'id' => $ad->id,
-                'title' => $ad->title,
-                'url' => $ad->video_url,
-                'duration' => $ad->duration,
-                'points' => $ad->points_reward,
-                'poster' => $ad->poster,
-                'created_at' => $ad->created_at,
-                'updated_at' => $ad->updated_at,
-            ]);
+        $perPage = $request->input('per_page', 10);
+        $ads = Ad::query()->where('is_active', true)->paginate($perPage);
+
+        if ($ads->isEmpty()) {
+            return $this->errorResponse('No videos found', 404);
+        }
 
         return $this->paginationResponse($ads, 'Videos retrieved successfully');
     }
 
-    public function getVideoById($id)
+    public function startView(Request $request)
     {
-        // Only select necessary columns when fetching a single video
-        $ad = Ad::select(['id', 'title', 'video_url', 'duration', 'points_reward', 'poster', 'created_at', 'updated_at'])
-            ->find($id);
+        // validate ad_id in request body
+        $data = $request->validate([
+            'ad_id' => 'required|integer|exists:ads,id',
+        ]);
 
-        if (!$ad || !$ad->is_active) {
-            return $this->errorResponse('Video not found', 404);
-        }
+        $adId = $data['ad_id'];
 
-        $videoData = [
-            'id' => $ad->id,
-            'title' => $ad->title,
-            'url' => $ad->video_url,
-            'duration' => $ad->duration,
-            'points' => $ad->points_reward,
-            'poster' => $ad->poster,
-            'created_at' => $ad->created_at,
-            'updated_at' => $ad->updated_at,
-        ];
-
-        return $this->successResponse($videoData, 'Video retrieved successfully');
-    }
-
-    public function startView($adId)
-    {
-        $ad = Ad::find($adId);
+        $ad = Ad::query()->find($adId);
 
         if (!$ad || !$ad->is_active) {
             return $this->errorResponse('Video not found', 404);
@@ -63,7 +39,8 @@ class VideoController extends Controller
         $userId = auth()->id();
 
         // eager-load the ad when we will need it later and use indexed columns in where to take advantage of DB indexes
-        $existingView = AdView::where('user_id', $userId)
+        $existingView = AdView::query()
+            ->where('user_id', $userId)
             ->where('ad_id', $adId)
             ->whereNull('completed_at')
             ->first();
@@ -72,8 +49,6 @@ class VideoController extends Controller
             return $this->errorResponse('View already started', 400);
         }
 
-        // Prevent starting a different video while another view is active
-        // eager-load related ad to avoid an extra query when accessing ->ad
         $otherActive = AdView::with('ad')
             ->where('user_id', $userId)
             ->whereNull('completed_at')
@@ -82,8 +57,8 @@ class VideoController extends Controller
 
         if ($otherActive) {
             $otherStarted = $otherActive->started_at;
-            $otherDuration = (int) $otherActive->ad->duration;
-            $otherWatched = (int) $otherStarted->diffInSeconds(now());
+            $otherDuration = (int)$otherActive->ad->duration;
+            $otherWatched = (int)$otherStarted->diffInSeconds(now());
             $otherRemaining = max(0, $otherDuration - $otherWatched);
 
             return $this->successResponse([
@@ -119,11 +94,16 @@ class VideoController extends Controller
         ], 'View started');
     }
 
-    public function endView($adId)
+    public function endView(Request $request)
     {
+        $data = $request->validate([
+            'ad_id' => 'required|integer|exists:ads,id',
+        ]);
+
+        $adId = $data['ad_id'];
+
         $userId = auth()->id();
 
-        // eager-load ad to avoid extra queries when accessing $adView->ad
         $adView = AdView::with('ad')
             ->where('user_id', $userId)
             ->where('ad_id', $adId)
@@ -138,8 +118,8 @@ class VideoController extends Controller
 
             if ($otherActive) {
                 $otherStarted = $otherActive->started_at;
-                $otherDuration = (int) $otherActive->ad->duration;
-                $otherWatched = (int) $otherStarted->diffInSeconds(now());
+                $otherDuration = (int)$otherActive->ad->duration;
+                $otherWatched = (int)$otherStarted->diffInSeconds(now());
                 $otherRemaining = max(0, $otherDuration - $otherWatched);
 
                 return $this->successResponse([
@@ -158,11 +138,10 @@ class VideoController extends Controller
             return $this->errorResponse('No active view found. Call start-view first', 400);
         }
 
-    $startedAt = $adView->started_at;
-    // ad was eager-loaded above so accessing ->ad does not trigger another DB query
-    $duration = (int) $adView->ad->duration;
+        $startedAt = $adView->started_at;
+        $duration = (int)$adView->ad->duration;
 
-        $watchedSeconds = (int) $startedAt->diffInSeconds(now());
+        $watchedSeconds = (int)$startedAt->diffInSeconds(now());
 
         if ($watchedSeconds < $duration) {
             $remaining = max(0, $duration - $watchedSeconds);
@@ -196,11 +175,18 @@ class VideoController extends Controller
         return $this->successResponse(['points' => $adView->ad->points_reward], 'View completed, points awarded');
     }
 
-    public function cancelView($adId)
+    public function cancelView(Request $request)
     {
+        $data = $request->validate([
+            'ad_id' => 'required|integer|exists:ads,id',
+        ]);
+
+        $adId = $data['ad_id'];
+
         $userId = auth()->id();
 
-        $adView = AdView::where('user_id', $userId)
+        $adView = AdView::query()
+            ->where('user_id', $userId)
             ->where('ad_id', $adId)
             ->whereNull('completed_at')
             ->first();
