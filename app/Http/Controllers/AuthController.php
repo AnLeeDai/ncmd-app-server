@@ -16,7 +16,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'phoneNumber' => ['sometimes', 'string', 'regex:/^(?:\+84|0)(?:3[2-9]|5[689]|7[06789]|8[1-9]|9[0-9])\d{7}$/'],
+            'phoneNumber' => ['sometimes', 'string', 'regex:/^(?:\+84|0)(?:3[2-9]|5[689]|7[06789]|8[1-9]|9[0-9])\d{7}$/', 'unique:users,phone_number'],
             'password' => ['sometimes', 'string', 'min:8', 'regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};:"\\|,.<>\/?]).+$/'],
             'role' => ['in:user'],
         ]);
