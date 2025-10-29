@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VideoController;
 use App\Http\Controllers\PointController;
 use App\Http\Controllers\SpinController;
+use App\Http\Controllers\CookieController;
 
 // Public routes
 Route::prefix('public')->group(function () {
@@ -19,6 +20,8 @@ Route::prefix('public')->group(function () {
         Route::get('/', [VideoController::class, 'videos']);
         Route::get('/{id}', [VideoController::class, 'getVideoById']);
     });
+
+    Route::get('/set-cookie', [CookieController::class, 'setTestCookie']);
 });
 
 // Private routes
